@@ -1,0 +1,15 @@
+flask
+FlagEmbedding
+BCEmbedding
+thefuzz
+pymilvus
+requests
+prometheus-client
+onnxruntime-gpu
+fastembed-gpu
+onnx
+optimum
+peft
+validx
+ctranslate2
+torch>=2.6.0
