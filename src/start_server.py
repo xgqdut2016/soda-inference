@@ -11,7 +11,7 @@ from flask import jsonify, Response
 from modules import MODEL_DICT_EMBED, MODEL_DICT_RERANK, MODEL_DICT_REWRITE
 from prometheus_client import Counter, Gauge, Summary, Histogram
 from prometheus_client import start_http_server as start_prometheus_http_server
-from validx.cy import (
+from validx import (
     Dict as VDict,
     List as VList,
     Str as VStr,
@@ -129,7 +129,7 @@ class InferServer:
             return Response(err_msg, status=400)
 
         with (
-                model_time_elapse.labels(model_type='embed', model_name=model_name, model_cls_str=type(model).__name__).time(), 
+                model_time_elapse.labels(model_type='embed', model_name=model_name, model_cls_str=type(model).__name__).time(),
                 runner_timer(consts.REST_TIMEOUT, self.app.logger.error, ['time out in running embed!'])
             ):
             try:
@@ -173,7 +173,7 @@ class InferServer:
         text_pairs = [(query, text) for text in texts]
 
         with (
-                model_time_elapse.labels(model_type='rerank', model_name=model_name, model_cls_str=type(model).__name__).time(), 
+                model_time_elapse.labels(model_type='rerank', model_name=model_name, model_cls_str=type(model).__name__).time(),
                 runner_timer(consts.REST_TIMEOUT, self.app.logger.error, ['time out in running rerank!'])
             ):
             try:
@@ -199,10 +199,10 @@ class InferServer:
         model_name = request.json.get('model', 'default')
         model, batch_gather = self.model_batch_exec_rewrite[model_name]
         message = request.json['message']
-        
+
 
         with (
-                model_time_elapse.labels(model_type='rewrite', model_name=model_name, model_cls_str=type(model).__name__).time(), 
+                model_time_elapse.labels(model_type='rewrite', model_name=model_name, model_cls_str=type(model).__name__).time(),
                 runner_timer(consts.REST_TIMEOUT, self.app.logger.error, ['time out in running rewrite!'])
             ):
             try:

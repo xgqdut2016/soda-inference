@@ -1,38 +1,220 @@
-### 3 分钟了解如何进入开发
+# Soda Inference Service
 
-欢迎使用云效代码管理 Codeup，通过阅读以下内容，你可以快速熟悉 Codeup ，并立即开始今天的工作。
+A high-performance inference service for embedding and reranking models, supporting both PyTorch and ONNX backends.
 
-### 提交**文件**
+## 🚀 Quick Start
 
-Codeup 支持两种方式进行代码提交：网页端提交，以及本地 Git 客户端提交。
+### Prerequisites
 
-* 如需体验本地命令行操作，请先安装 Git 工具，安装方法参见[安装Git](https://help.aliyun.com/document_detail/153800.html)。
+- Python 3.8+
+- Conda environment (recommended)
+- Required model files (see model setup below)
 
-* 如需体验 SSH 方式克隆和提交代码，请先在平台账号内配置 SSH 公钥，配置方法参见[配置 SSH 密钥](https://help.aliyun.com/document_detail/153709.html)。
+### Environment Setup
 
-* 如需体验 HTTP 方式克隆和提交代码，请先在平台账号内配置克隆账密，配置方法参见[配置 HTTPS 克隆账号密码](https://help.aliyun.com/document_detail/153710.html)。
+```bash
+# Clone the repository
+git clone <repository-url>
+cd soda-inference
 
-现在，你可以在 Codeup 中提交代码文件了，跟着文档「[__提交第一行代码__](https://help.aliyun.com/document_detail/153707.html?spm=a2c4g.153710.0.0.3c213774PFSMIV#6a5dbb1063ai5)」一起操作试试看吧。
+# Create and activate conda environment
+conda create -n infinitensor-env python=3.8
+conda activate infinitensor-env
 
-<img src="https://img.alicdn.com/imgextra/i3/O1CN013zHrNR1oXgGu8ccvY_!!6000000005235-0-tps-2866-1268.jpg" width="100%" />
+# Install dependencies
+pip install -r requirements.txt
+```
 
+## 📋 Test Pipeline
 
-### 进行代码检测
+Follow this step-by-step pipeline to test the inference services:
 
-开发过程中，为了更好的维护你的代码质量，你可以开启 Codeup 内置开箱即用的「[代码检测服务](https://help.aliyun.com/document_detail/434321.html)」，开启后提交或合并请求的变更将自动触发检测，识别代码编写规范和安全漏洞问题，并及时提供结果报表和修复建议。
+### Step 1: Launch Services
 
-<img src="https://img.alicdn.com/imgextra/i2/O1CN01BRzI1I1IO0CR2i4Aw_!!6000000000882-0-tps-2862-1362.jpg" width="100%" />
+#### 1.1 Launch Embedding Service
 
-### 开展代码评审
+Choose one of the following embedding service configurations:
 
-功能开发完毕后，通常你需要发起「[代码评审并执行合并](https://help.aliyun.com/document_detail/153872.html)」，Codeup 支持多人协作的代码评审服务，你可以通过「[保护分支设置合并规则](https://help.aliyun.com/document_detail/153873.html?spm=a2c4g.203108.0.0.430765d1l9tTRR#p-4on-aep-l5q)」策略及「[__合并请求设置__](https://help.aliyun.com/document_detail/153874.html?spm=a2c4g.153871.0.0.3d38686cJpcdJI)」对合并过程进行流程化管控，同时提供在线代码评审及冲突解决能力，让评审过程更加流畅。
+**BGE-M3 PyTorch (Port 10991):**
+```bash
+SERVICE_PORT=10991 MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/zenghua/repos/soda-inference/bge-m3","use_fp16":false}' python src/start_server.py
+```
 
-<img src="https://img.alicdn.com/imgextra/i1/O1CN01MaBDFH1WWcGnQqMHy_!!6000000002796-0-tps-2592-1336.jpg" width="100%" />
+**BGE-M3 Infinitensor (Port 10992):**
+```bash
+SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/BGE/bge_sim_512.onnx","tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
+```
 
-### 成员协作
+**BGE-M3 ONNX (Port 10993):**
+```bash
+SERVICE_PORT=10993 MODEL_TYPE=embed MODEL_CLS=BgeM3OnnxInfer MODEL_KWARGS='{"tokenizer_path":"/home/zenghua/repos/soda-inference/bge_m3_onnx/tokenizer","model_onnx_path":"/home/zenghua/repos/soda-inference/bge_m3_onnx/onnx_model/bge_m3_fp16_dense_sparse_optimized.onnx"}' python src/start_server.py
+```
 
-是时候邀请成员一起编写卓越的代码工程了，请点击左下角「成员」邀请你的小伙伴开始协作吧！ 
+#### 1.2 Launch Reranking Service
 
-### 更多
+Choose one of the following reranking service configurations:
 
-Git 使用教学、高级功能指引等更多说明，参见[Codeup帮助文档](https://help.aliyun.com/document_detail/153402.html)。
+**BGE Reranker PyTorch (Port 10993):**
+```bash
+SERVICE_PORT=10993 MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/home/zenghua/repos/soda-inference/bge-reranker-v2-m3","use_fp16":false}' python src/start_server.py
+```
+
+**BGE Reranker Infinitensor (Port 10994):**
+```bash
+SERVICE_PORT=10994 MODEL_TYPE=rerank MODEL_CLS=InfinitensorRerankerInfer MODEL_KWARGS='{"model_path":"/home/zenghua/BGE-reranker-512/bge_reranker_O1_sim_512.onnx","tokenizer_path":"/home/zenghua/repos/soda-inference/bge-reranker-v2-m3"}' python src/start_server.py
+```
+
+**BGE Reranker ONNX (Port 10996):**
+```bash
+SERVICE_PORT=10996 MODEL_TYPE=rerank MODEL_CLS=OptimumOnnxReranker MODEL_KWARGS='{"model_path":"/home/zenghua/repos/soda-inference/rerank-bge_v2_m3-onnx_cuda_o4"}' python src/start_server.py
+```
+
+### Step 2: Test Individual Services
+
+#### 2.1 Test Embedding Service
+
+Test the embedding service using `test/test_embed.py`:
+
+```bash
+# Test single embedding service
+python test/test_embed.py
+
+# Test multiple services (modify URLs in the script)
+# The script will test both port 10991 and 10992 by default
+```
+
+**Expected Output:**
+```json
+{
+  "dense_embed": [0.1, 0.2, ...],
+  "sparse_embed": {"1": 0.5, "2": 0.62, ...}
+}
+```
+
+#### 2.2 Test Reranking Service
+
+Test the reranking service using `test/test_rerank.py`:
+
+```bash
+# Test reranking service
+python test/test_rerank.py
+
+# Modify the URL in the script to test different ports
+# Default tests port 10994
+```
+
+**Expected Output:**
+```json
+[0.8, 0.3, 0.9, ...]  # Reranking scores for each document
+```
+
+### Step 3: End-to-End Testing
+
+Run the comprehensive E2E test using `test/test_e2e.py`:
+
+```bash
+# Run E2E test (requires both embedding and reranking services)
+python test/test_e2e.py
+```
+
+**What it does:**
+- Tests embedding service on port 10992
+- Tests reranking service on port 10993
+- Processes 8 query-document pairs
+- Generates `embedding.pkl` and `reranker.pkl` files
+- Validates the complete pipeline
+
+**Expected Output:**
+```
+Processing query-document pairs...
+Generated embedding.pkl and reranker.pkl files
+```
+
+## 🔧 Service Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVICE_PORT` | Port for the service | 9991 |
+| `MODEL_TYPE` | Type of model (`embed` or `rerank`) | - |
+| `MODEL_CLS` | Model class to use | - |
+| `MODEL_KWARGS` | JSON string with model parameters | `{}` |
+| `BATCH_SIZE` | Batch size for processing | 12 |
+| `QUEUE_SIZE` | Queue size for requests | 1024 |
+| `REST_TIMEOUT` | REST API timeout | 15.0 |
+
+### Available Model Classes
+
+#### Embedding Models
+- `BgeM3Infer` - BGE-M3 PyTorch implementation
+- `InfinitensorInfer` - Infinitensor ONNX implementation
+- `BgeM3OnnxInfer` - BGE-M3 ONNX implementation
+- `FastembedDense` - FastEmbed dense embeddings
+- `FastembedSparse` - FastEmbed sparse embeddings
+
+#### Reranking Models
+- `BgeRerankerInfer` - BGE Reranker PyTorch implementation
+- `InfinitensorRerankerInfer` - Infinitensor Reranker ONNX implementation
+- `OptimumOnnxReranker` - Optimum ONNX Reranker
+- `BceRerankerInfer` - BCE Reranker PyTorch implementation
+
+## 📊 API Endpoints
+
+### Embedding Service
+
+**Endpoint:** `POST /embed`
+
+**Request:**
+```json
+{
+  "model": "default",
+  "text": "your text here",
+  "return_dense": true,
+  "return_sparse": true
+}
+```
+
+**Response:**
+```json
+{
+  "dense_embed": [0.1, 0.2, ...],
+  "sparse_embed": {"1": 0.5, "2": 0.62, ...}
+}
+```
+
+### Reranking Service
+
+**Endpoint:** `POST /rerank`
+
+**Request:**
+```json
+{
+  "model": "default",
+  "query": "your query",
+  "texts": ["document1", "document2", ...]
+}
+```
+
+**Response:**
+```json
+[0.8, 0.3, 0.9, ...]
+```
+
+### Evaluate Generated Results
+
+Compare generated pickle files with reference data:
+
+```bash
+# Evaluate all results
+python eval_generated_pkl.py
+
+# Evaluate only embeddings
+python eval_generated_pkl.py --embedding-only
+
+# Evaluate only reranker
+python eval_generated_pkl.py --reranker-only
+
+# Generate report
+python eval_generated_pkl.py --output evaluation_report.txt
+```

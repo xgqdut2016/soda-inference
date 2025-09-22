@@ -20,7 +20,9 @@ def get_emb(
 
 if __name__ == "__main__":
     # print(get_emb("haha"))
-    print(get_emb(["haha", "hehe"]))
+    print(get_emb(["haha", "hehe"], url="http://127.0.0.1:10991/embed"))
+    print(get_emb(["haha", "hehe"], url="http://127.0.0.1:10992/embed"))
+
     # res_torch = get_emb(["haha", "hehe"], url="http://127.0.0.1:10991/embed")
     # res_onnx = get_emb(["haha", "hehe"], url="http://127.0.0.1:10992/embed")
     # print('hoho')

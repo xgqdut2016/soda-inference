@@ -16,6 +16,8 @@ QUEUE_SIZE = int(os.getenv('QUEUE_SIZE', 1024))
 
 ## --- Bge m3
 # SERVICE_PORT=10991 MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/zenghua/repos/soda-inference/bge-m3","use_fp16":false}' python src/start_server.py
+# SERVICE_PORT=10991 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
+# SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/BGE/bge_sim_512.onnx","tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
 # SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/zhuchunyang/tools/bge-m3","use_fp16":true}' python start_server.py
 ## --- Bge m3
 
@@ -25,7 +27,8 @@ QUEUE_SIZE = int(os.getenv('QUEUE_SIZE', 1024))
 ## --- Bge m3 onnx
 
 ## --- Bge rerank
-# SERVICE_PORT=10994 MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/home/zenghua/repos/soda-inference/bge-reranker-v2-m3","use_fp16":false}' python src/start_server.py
+# SERVICE_PORT=10993 MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/home/zenghua/repos/soda-inference/bge-reranker-v2-m3","use_fp16":false}' python src/start_server.py
+# SERVICE_PORT=10994 MODEL_TYPE=rerank MODEL_CLS=InfinitensorRerankerInfer MODEL_KWARGS='{"model_path":"/home/zenghua/BGE-reranker-512/bge_reranker_O1_sim_512.onnx","tokenizer_path":"/home/zenghua/repos/soda-inference/bge-reranker-v2-m3"}' python src/start_server.py
 # SERVICE_PORT=10995 MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/home/zhuchunyang/tools/bge-reranker-v2-m3","use_fp16":true}' python start_server.py
 ## --- Bge rerank
 
