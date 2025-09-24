@@ -262,19 +262,19 @@ def print_summary_report(embedding_results: Dict, reranker_results: Dict, output
 
     # Determine overall assessment
     if embedding_good is True and reranker_good is True:
-        add_line("✅ Results look GOOD - Generated files closely match reference data")
+        add_line(f"✅ Results look GOOD - Generated files closely match reference data (Cosine Similarity: {cos_sim_mean:.4f}, Reranker Correlation: {corr_mean:.4f})")
     elif embedding_good is True and reranker_good is None:
-        add_line("✅ Embedding results look GOOD - Generated embeddings closely match reference data")
+        add_line(f"✅ Embedding results look GOOD - Generated embeddings closely match reference data (Cosine Similarity: {cos_sim_mean:.4f})")
     elif embedding_good is None and reranker_good is True:
-        add_line("✅ Reranker results look GOOD - Generated reranker scores closely match reference data")
+        add_line(f"✅ Reranker results look GOOD - Generated reranker scores closely match reference data (Correlation: {corr_mean:.4f})")
     elif embedding_good is False and reranker_good is None:
-        add_line("❌ Embedding results need ATTENTION - Significant differences detected in embeddings")
+        add_line(f"❌ Embedding results need ATTENTION - Significant differences detected in embeddings (Cosine Similarity: {cos_sim_mean:.4f} < 0.9)")
     elif embedding_good is None and reranker_good is False:
-        add_line("❌ Reranker results need ATTENTION - Significant differences detected in reranker scores")
+        add_line(f"❌ Reranker results need ATTENTION - Significant differences detected in reranker scores (Correlation: {corr_mean:.4f} < 0.8)")
     elif embedding_good is False and reranker_good is False:
-        add_line("❌ Results need ATTENTION - Significant differences detected in both components")
+        add_line(f"❌ Results need ATTENTION - Significant differences detected in both components (Cosine Similarity: {cos_sim_mean:.4f} < 0.9, Correlation: {corr_mean:.4f} < 0.8)")
     else:
-        add_line("⚠️  Results are MIXED - Some components match well, others need attention")
+        add_line(f"⚠️  Results are MIXED - Some components match well, others need attention (Cosine Similarity: {cos_sim_mean:.4f}, Correlation: {corr_mean:.4f})")
 
     add_line("=" * 80)
 
