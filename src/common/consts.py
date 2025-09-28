@@ -18,6 +18,7 @@ QUEUE_SIZE = int(os.getenv('QUEUE_SIZE', 1024))
 # SERVICE_PORT=10991 MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/zenghua/repos/soda-inference/bge-m3","use_fp16":false}' python src/start_server.py
 # SERVICE_PORT=10991 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
 # SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/BGE/bge_sim_512.onnx","tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
+#SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=InfinitensorInfer MODEL_KWARGS='{"model_path": "/home/zenghua/BGE_12_512/bge_m3_model.sim.onnx","tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3"}' python src/start_server.py
 # SERVICE_PORT=10992 MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/zhuchunyang/tools/bge-m3","use_fp16":true}' python start_server.py
 ## --- Bge m3
 

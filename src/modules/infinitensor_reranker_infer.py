@@ -5,8 +5,11 @@ from pyinfinitensor.onnx import OnnxStub, backend
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import List, Tuple, Dict, Any, Optional, Union
 from tqdm import tqdm, trange
+import time
+from concurrent.futures import Future
 
 from common.abs_reranker import AbstractRerank
+from .request_queue import RequestQueue
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -33,6 +36,8 @@ class InfinitensorRerankerInfer(AbstractRerank):
         batch_size: int = 256,
         device: str = "cuda",
         normalize: bool = False,
+        enable_queue: bool = True,
+        queue_timeout: float = 0.1,
         **build_kwargs
     ) -> None:
         """Initialize InfinitensorRerankerInfer with ONNX model and tokenizer.
@@ -43,6 +48,9 @@ class InfinitensorRerankerInfer(AbstractRerank):
             max_length: Maximum sequence length for tokenization
             batch_size: Batch size for inference
             device: Device to run inference on (cuda/cpu)
+            normalize: Whether to normalize scores
+            enable_queue: Whether to enable request queue for batching
+            queue_timeout: Timeout in seconds for queue batching
             **build_kwargs: Additional arguments
         """
         self.onnx_model_path = onnx_model_path
@@ -51,6 +59,8 @@ class InfinitensorRerankerInfer(AbstractRerank):
         self.batch_size = batch_size
         self.device = device
         self.normalize = normalize
+        self.enable_queue = enable_queue
+        self.queue_timeout = queue_timeout
 
         # Load ONNX model
         self.onnx_model = onnx.load(onnx_model_path)
@@ -77,7 +87,79 @@ class InfinitensorRerankerInfer(AbstractRerank):
         self.W_out = out_proj.weight.detach().cpu().numpy() # shape [1, 1024]
         self.b_out = out_proj.bias.detach().cpu().numpy()   # shape [1]
 
+        # Initialize request queue if enabled
+        if self.enable_queue:
+            self.request_queue = RequestQueue(
+                batch_size=self.batch_size,
+                timeout_seconds=self.queue_timeout
+            )
+            self.request_queue.start_processing(self._process_batch_requests)
+            self._request_counter = 0
+        else:
+            self.request_queue = None
 
+    def _process_batch_requests(self, batch_tokenized_inputs: List[Dict]) -> List[float]:
+        """Process a batch of pre-tokenized requests.
+
+        Args:
+            batch_tokenized_inputs: List of pre-tokenized inputs to process
+
+        Returns:
+            List of relevance scores
+        """
+        return self._compute_score_tokenized(batch_tokenized_inputs)
+
+    def rerank_async(self, text_pair: Tuple[str, str]) -> Future:
+        """Rerank a single text pair asynchronously using the queue.
+
+        Args:
+            text_pair: (query, document) text pair to rerank
+
+        Returns:
+            Future object that will contain the result
+        """
+        if not self.enable_queue or self.request_queue is None:
+            raise RuntimeError("Queue is not enabled. Use rerank() method instead.")
+
+        # Tokenize immediately while waiting for batch
+        query, document = text_pair
+        query_inputs = self.tokenizer(
+            query,
+            return_tensors=None,
+            add_special_tokens=False,
+            max_length=self.max_length,
+            truncation=True,
+        )['input_ids']
+
+        document_inputs = self.tokenizer(
+            document,
+            return_tensors=None,
+            add_special_tokens=False,
+            max_length=self.max_length,
+            truncation=True,
+        )['input_ids']
+
+        # Prepare tokenized input
+        tokenized_input = self.tokenizer.prepare_for_model(
+            query_inputs,
+            document_inputs,
+            truncation='only_second',
+            max_length=self.max_length,
+            padding="max_length",
+        )
+
+        self._request_counter += 1
+        request_id = f"req_{self._request_counter}_{int(time.time() * 1000)}"
+        return self.request_queue.submit_request(request_id, tokenized_input)
+
+    def cleanup(self):
+        """Clean up resources, especially the request queue."""
+        if self.request_queue is not None:
+            self.request_queue.stop_processing()
+
+    def __del__(self):
+        """Destructor to ensure cleanup."""
+        self.cleanup()
 
     def rerank(self, texts: list[tuple[str, str]]) -> list[float]:
         """Rerank text pairs and return relevance scores.
@@ -88,15 +170,33 @@ class InfinitensorRerankerInfer(AbstractRerank):
         Returns:
             List of relevance scores for each text pair
         """
-        # Process in batches for better performance
-        scores = self._compute_scores(
-            texts,
-            batch_size=self.batch_size,
-            max_length=self.max_length,
-        )
-        if isinstance(scores, float):
-            scores = [scores]
-        return scores
+        if self.enable_queue and self.request_queue is not None:
+            # Use queue for batching
+            futures = []
+            for text_pair in texts:
+                future = self.rerank_async(text_pair)
+                futures.append(future)
+
+            # Wait for all results
+            scores = []
+            for future in futures:
+                try:
+                    score = future.result(timeout=30.0)  # 30 second timeout
+                    scores.append(score)
+                except Exception as e:
+                    raise RuntimeError(f"Error processing request: {e}")
+
+            return scores
+        else:
+            # Process in batches for better performance (original behavior)
+            scores = self._compute_scores(
+                texts,
+                batch_size=self.batch_size,
+                max_length=self.max_length,
+            )
+            if isinstance(scores, float):
+                scores = [scores]
+            return scores
 
     def _compute_scores(
         self,
@@ -165,43 +265,53 @@ class InfinitensorRerankerInfer(AbstractRerank):
                                 disable=len(all_inputs_sorted) < batch_size):
             sentences_batch = all_inputs_sorted[start_index:start_index + batch_size]
 
-            # Process each sentence pair individually
-            for sentence_item in sentences_batch:
-                # Use tokenizer.pad() for single item
-                inputs = self.tokenizer.pad(
-                    [sentence_item],  # Wrap single item in list
-                    padding=True,
-                    return_tensors='np',  # Return numpy arrays for InfiniTensor
-                    **kwargs
-                )
+            # Pad batch to full batch_size if needed
+            padded_batch = sentences_batch[:]
+            while len(padded_batch) < batch_size:
+                # Add padding item (empty input)
+                padded_batch.append({
+                    'input_ids': [self.tokenizer.pad_token_id] * max_length,
+                    'attention_mask': [0] * max_length
+                })
 
-                # Prepare inputs for InfiniTensor
-                ort_inputs = {
-                    "input_ids": inputs["input_ids"].astype(np.int64),
-                    "attention_mask": inputs["attention_mask"].astype(np.int64),
-                }
-                logger.debug(f"ort_inputs shapes: input_ids={ort_inputs['input_ids'].shape}, attention_mask={ort_inputs['attention_mask'].shape}")
+            # Truncate if we have more than batch_size
+            if len(padded_batch) > batch_size:
+                padded_batch = padded_batch[:batch_size]
 
-                # Copy inputs to InfiniTensor tensors
-                for name, itensor in self.model.inputs.items():
-                    if name not in ort_inputs:
-                        raise RuntimeError(f"Input {name} not found in tokenized inputs")
-                    itensor.copyin_numpy(ort_inputs[name])
+            # Prepare inputs for InfiniTensor - process as batch
+            input_ids = np.array([item['input_ids'] for item in padded_batch])
+            attention_mask = np.array([item['attention_mask'] for item in padded_batch])
 
-                # Run model for this single sentence pair
-                self.model.run()
-                outputs = [output.copyout_numpy() for output in self.model.outputs.values()]
-                cls_embeddings = outputs[0][:, 0, :]
+            ort_inputs = {
+                "input_ids": input_ids.astype(np.int64),
+                "attention_mask": attention_mask.astype(np.int64),
+            }
+            logger.debug(f"ort_inputs shapes: input_ids={ort_inputs['input_ids'].shape}, attention_mask={ort_inputs['attention_mask'].shape}")
 
-                logger.debug(f"outputs: {outputs}, outputs[0].shape: {outputs[0].shape}")
+            # Copy inputs to InfiniTensor tensors
+            for name, itensor in self.model.inputs.items():
+                if name not in ort_inputs:
+                    raise RuntimeError(f"Input {name} not found in tokenized inputs")
+                itensor.copyin_numpy(ort_inputs[name])
 
-                # Dense + tanh
-                h = np.tanh(cls_embeddings @ self.W_dense.T + self.b_dense)
+            # Run model for the batch
+            self.model.run()
+            outputs = [output.copyout_numpy() for output in self.model.outputs.values()]
+            cls_embeddings = outputs[0][:, 0, :]
 
-                # Out projection
-                logits = h @ self.W_out.T + self.b_out  # [batch, 1]score
-                logger.debug(f"logits: {logits}, logits.shape: {logits.shape}")
-                all_scores.append(float(logits[0][0]))
+            logger.debug(f"outputs: {outputs}, outputs[0].shape: {outputs[0].shape}")
+
+            # Dense + tanh
+            h = np.tanh(cls_embeddings @ self.W_dense.T + self.b_dense)
+
+            # Out projection
+            logits = h @ self.W_out.T + self.b_out  # [batch, 1]score
+            logger.debug(f"logits: {logits}, logits.shape: {logits.shape}")
+
+            # Only add scores for actual items (not padding)
+            actual_batch_size = len(sentences_batch)
+            for i in range(actual_batch_size):
+                all_scores.append(float(logits[i][0]))
 
 
         all_scores = [all_scores[idx] for idx in np.argsort(length_sorted_idx)]
@@ -210,3 +320,63 @@ class InfinitensorRerankerInfer(AbstractRerank):
             all_scores = [sigmoid(score) for score in all_scores]
 
         return all_scores
+
+    def _compute_score_tokenized(self, tokenized_inputs: List[Dict]) -> List[float]:
+        """Compute scores for pre-tokenized inputs.
+
+        Args:
+            tokenized_inputs: List of pre-tokenized inputs
+
+        Returns:
+            List of relevance scores
+        """
+        # Pad inputs to full batch size if needed
+        padded_inputs = tokenized_inputs[:]
+        while len(padded_inputs) < self.batch_size:
+            # Add padding input
+            padded_inputs.append({
+                'input_ids': [self.tokenizer.pad_token_id] * self.max_length,
+                'attention_mask': [0] * self.max_length
+            })
+
+        # Truncate if we have more than batch_size
+        if len(padded_inputs) > self.batch_size:
+            padded_inputs = padded_inputs[:self.batch_size]
+
+        # Prepare inputs for InfiniTensor - process as batch
+        input_ids = np.array([item['input_ids'] for item in padded_inputs])
+        attention_mask = np.array([item['attention_mask'] for item in padded_inputs])
+
+        ort_inputs = {
+            "input_ids": input_ids.astype(np.int64),
+            "attention_mask": attention_mask.astype(np.int64),
+        }
+        logger.debug(f"ort_inputs shapes: input_ids={ort_inputs['input_ids'].shape}, attention_mask={ort_inputs['attention_mask'].shape}")
+
+        # Copy inputs to InfiniTensor tensors
+        for name, itensor in self.model.inputs.items():
+            if name not in ort_inputs:
+                raise RuntimeError(f"Input {name} not found in tokenized inputs")
+            itensor.copyin_numpy(ort_inputs[name])
+
+        # Run model for the batch
+        self.model.run()
+        outputs = [output.copyout_numpy() for output in self.model.outputs.values()]
+        cls_embeddings = outputs[0][:, 0, :]
+
+        logger.debug(f"outputs: {outputs}, outputs[0].shape: {outputs[0].shape}")
+
+        # Dense + tanh
+        h = np.tanh(cls_embeddings @ self.W_dense.T + self.b_dense)
+
+        # Out projection
+        logits = h @ self.W_out.T + self.b_out  # [batch, 1]score
+        logger.debug(f"logits: {logits}, logits.shape: {logits.shape}")
+
+        # Only return scores for actual items (not padding)
+        actual_batch_size = len(tokenized_inputs)
+        scores = []
+        for i in range(actual_batch_size):
+            scores.append(float(logits[i][0]))
+
+        return scores

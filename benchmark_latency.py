@@ -216,7 +216,7 @@ class LatencyBenchmark:
             if model_name == 'BgeM3Infer':
                 stats = self.measure_embedding_latency(BgeM3Infer, model_name, model_config)
                 results['embedding_models'][model_name] = stats
-            elif model_name == 'InfinitensorInfer':
+            elif model_name in ['InfinitensorInfer', 'InfinitensorInferPerRequest']:
                 stats = self.measure_embedding_latency(InfinitensorInfer, model_name, model_config)
                 results['embedding_models'][model_name] = stats
 
