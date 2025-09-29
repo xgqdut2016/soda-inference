@@ -30,8 +30,8 @@ echo "Running default benchmark (all models)..."
 run_benchmark "Full Benchmark - All Models" "--config benchmark_config.json --iterations 50"
 
 # # Embedding models only
-# echo ""
-# echo "Running embedding models benchmark..."
+echo ""
+echo "Running embedding models benchmark..."
 # run_benchmark "Embedding Models Only" "--config benchmark_config.json --embedding-only --iterations 50"
 
 # # Reranker models only
@@ -42,7 +42,7 @@ run_benchmark "Full Benchmark - All Models" "--config benchmark_config.json --it
 # Quick benchmark (fewer iterations)
 echo ""
 echo "Running quick benchmark..."
-run_benchmark "Quick Benchmark" "--config benchmark_config.json --iterations 10 --warmup 2"
+# run_benchmark "Quick Benchmark" "--config benchmark_config_queue.json --iterations 10 --reranker-only --warmup 2"
 
 echo ""
 echo "✅ All benchmarks completed!"

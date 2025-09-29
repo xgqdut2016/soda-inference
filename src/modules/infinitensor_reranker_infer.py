@@ -33,11 +33,12 @@ class InfinitensorRerankerInfer(AbstractRerank):
         onnx_model_path: str,
         model_path: str,
         max_length: int = 512,
-        batch_size: int = 256,
+        batch_size: int = 512,
         device: str = "cuda",
         normalize: bool = False,
         enable_queue: bool = True,
         queue_timeout: float = 0.1,
+        use_cuda_graph: bool = True,
         **build_kwargs
     ) -> None:
         """Initialize InfinitensorRerankerInfer with ONNX model and tokenizer.
@@ -61,7 +62,7 @@ class InfinitensorRerankerInfer(AbstractRerank):
         self.normalize = normalize
         self.enable_queue = enable_queue
         self.queue_timeout = queue_timeout
-
+        self.use_cuda_graph = use_cuda_graph
         # Load ONNX model
         self.onnx_model = onnx.load(onnx_model_path)
 
@@ -74,6 +75,9 @@ class InfinitensorRerankerInfer(AbstractRerank):
         # Create OnnxStub
         self.model = OnnxStub(self.onnx_model, self.backend)
 
+        # Dry run to warm up the model
+        if self.use_cuda_graph:
+            self.model.run_with_cudagraph()
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.original_model = AutoModelForSequenceClassification.from_pretrained(model_path)
@@ -246,7 +250,6 @@ class InfinitensorRerankerInfer(AbstractRerank):
                  **kwargs
              )['input_ids']
             for q_inp, d_inp in zip(queries_inputs_batch, passages_inputs_batch):
-                logger.debug(f"q_inp: {q_inp}, d_inp: {d_inp}")
                 item = self.tokenizer.prepare_for_model(
                      q_inp,
                      d_inp,
@@ -258,7 +261,6 @@ class InfinitensorRerankerInfer(AbstractRerank):
         # sort by length for less padding
         length_sorted_idx = np.argsort([-len(x['input_ids']) for x in all_inputs])
         all_inputs_sorted = [all_inputs[i] for i in length_sorted_idx]
-        logger.debug(f"all_inputs_sorted: {all_inputs_sorted}")
 
         all_scores = []
         for start_index in tqdm(range(0, len(all_inputs_sorted), batch_size), desc="Compute Scores",
@@ -286,7 +288,6 @@ class InfinitensorRerankerInfer(AbstractRerank):
                 "input_ids": input_ids.astype(np.int64),
                 "attention_mask": attention_mask.astype(np.int64),
             }
-            logger.debug(f"ort_inputs shapes: input_ids={ort_inputs['input_ids'].shape}, attention_mask={ort_inputs['attention_mask'].shape}")
 
             # Copy inputs to InfiniTensor tensors
             for name, itensor in self.model.inputs.items():
@@ -295,18 +296,19 @@ class InfinitensorRerankerInfer(AbstractRerank):
                 itensor.copyin_numpy(ort_inputs[name])
 
             # Run model for the batch
-            self.model.run()
+            if self.use_cuda_graph:
+                self.model.run_with_cudagraph()
+            else:
+                self.model.run()
             outputs = [output.copyout_numpy() for output in self.model.outputs.values()]
             cls_embeddings = outputs[0][:, 0, :]
 
-            logger.debug(f"outputs: {outputs}, outputs[0].shape: {outputs[0].shape}")
 
             # Dense + tanh
             h = np.tanh(cls_embeddings @ self.W_dense.T + self.b_dense)
 
             # Out projection
             logits = h @ self.W_out.T + self.b_out  # [batch, 1]score
-            logger.debug(f"logits: {logits}, logits.shape: {logits.shape}")
 
             # Only add scores for actual items (not padding)
             actual_batch_size = len(sentences_batch)
@@ -351,7 +353,6 @@ class InfinitensorRerankerInfer(AbstractRerank):
             "input_ids": input_ids.astype(np.int64),
             "attention_mask": attention_mask.astype(np.int64),
         }
-        logger.debug(f"ort_inputs shapes: input_ids={ort_inputs['input_ids'].shape}, attention_mask={ort_inputs['attention_mask'].shape}")
 
         # Copy inputs to InfiniTensor tensors
         for name, itensor in self.model.inputs.items():
@@ -364,14 +365,12 @@ class InfinitensorRerankerInfer(AbstractRerank):
         outputs = [output.copyout_numpy() for output in self.model.outputs.values()]
         cls_embeddings = outputs[0][:, 0, :]
 
-        logger.debug(f"outputs: {outputs}, outputs[0].shape: {outputs[0].shape}")
 
         # Dense + tanh
         h = np.tanh(cls_embeddings @ self.W_dense.T + self.b_dense)
 
         # Out projection
         logits = h @ self.W_out.T + self.b_out  # [batch, 1]score
-        logger.debug(f"logits: {logits}, logits.shape: {logits.shape}")
 
         # Only return scores for actual items (not padding)
         actual_batch_size = len(tokenized_inputs)

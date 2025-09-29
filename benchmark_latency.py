@@ -226,7 +226,7 @@ class LatencyBenchmark:
             if model_name == 'BgeRerankerInfer':
                 stats = self.measure_reranker_latency(BgeRerankerInfer, model_name, model_config)
                 results['reranker_models'][model_name] = stats
-            elif model_name == 'InfinitensorRerankerInfer':
+            elif model_name in ['InfinitensorRerankerInfer', 'InfinitensorRerankerInferPerRequest']:
                 stats = self.measure_reranker_latency(InfinitensorRerankerInfer, model_name, model_config)
                 results['reranker_models'][model_name] = stats
 

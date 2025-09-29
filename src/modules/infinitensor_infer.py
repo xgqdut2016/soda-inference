@@ -6,6 +6,10 @@ from typing import List, Tuple, Dict, Any, Optional, Union
 from collections import defaultdict
 import time
 from concurrent.futures import Future
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 from common.abs_embedding import AbstractEmbed
 from .request_queue import RequestQueue
@@ -37,8 +41,8 @@ class InfinitensorInfer(AbstractEmbed):
         batch_size: int = 12,
         device: str = "cuda",
         enable_queue: bool = True,
-        queue_timeout: float = 0.5,
-        use_cuda_graph: bool = False,
+        queue_timeout: float = 0.1,
+        use_cuda_graph: bool = True,
         **build_kwargs
     ) -> None:
         """Initialize InfinitensorInfer with ONNX model and tokenizer.
@@ -73,6 +77,9 @@ class InfinitensorInfer(AbstractEmbed):
 
         # Create OnnxStub
         self.model = OnnxStub(self.onnx_model, self.backend)
+        # Dry run to warm up the model
+        if use_cuda_graph:
+            self.model.run_with_cudagraph()
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)

@@ -2,14 +2,14 @@
     "warmup_runs": 5,
     "iterations": 100,
     "embedding_models": {
-        "BgeM3Infer": {
-            "model_path": "/home/zenghua/repos/soda-inference/bge-m3",
-            "use_fp16": false,
+        "InfinitensorInfer": {
+            "model_path": "/home/zenghua/BGE_12_512/bge_m3_model.sim.onnx",
+            "tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3",
             "device": "cuda",
             "batch_size": 12,
-            "max_length": 8192
+            "max_length": 512
         },
-        "InfinitensorInfer": {
+        "InfinitensorInferPerRequest": {
             "model_path": "/home/zenghua/BGE/bge_sim_512.onnx",
             "tokenizer_path": "/home/zenghua/repos/soda-inference/bge-m3",
             "device": "cuda",
@@ -19,14 +19,14 @@
         }
     },
     "reranker_models": {
-        "BgeRerankerInfer": {
+        "InfinitensorRerankerInfer": {
+            "onnx_model_path": "/home/zenghua/BGE-reranker_512_512/bge_reranker_sim_512_512.onnx",
             "model_path": "/home/zenghua/repos/soda-inference/bge-reranker-v2-m3",
-            "use_fp16": false,
             "device": "cuda",
             "batch_size": 512,
             "max_length": 512
         },
-        "InfinitensorRerankerInfer": {
+        "InfinitensorRerankerInferPerRequest": {
             "onnx_model_path": "/home/zenghua/BGE-reranker-512/bge_reranker_O1_sim_512.onnx",
             "model_path": "/home/zenghua/repos/soda-inference/bge-reranker-v2-m3",
             "device": "cuda",
