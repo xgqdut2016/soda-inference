@@ -31,54 +31,68 @@ from modules.infinitensor_infer import InfinitensorInfer
 from modules.bge_reranker_infer import BgeRerankerInfer
 from modules.infinitensor_reranker_infer import InfinitensorRerankerInfer
 
+from datasets import load_dataset
+import re
+
+# ===== 定义 HTML 清理函数 =====
+def clean_html(text):
+    text = re.sub(r"<[^>]+>", "", text)  # 去除所有 HTML 标签
+    text = text.replace("\n", "").strip()
+    return text
 
 class LatencyBenchmark:
     """Benchmark class for measuring inference latency."""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], dataset_path):
         """Initialize benchmark with configuration."""
         self.config = config
         self.results = {}
-
+        # dataset_path = "/home/xiaogq/verify_models/mteb_code/T2Retrieval"
+        dataset = load_dataset(dataset_path)
+        # ===== 提取 queries 和 corpus 文本 =====
+        queries = [item["text"].strip() for item in dataset["queries"]]
+        corpus = [clean_html(item["text"]) for item in dataset["corpus"]]
+        num_samples = 16
         # Test data
-        self.test_queries = [
-            '我最低选多少课',
-            '离东南门最近的健身房在哪？',
-            '军训期间的4学分算在大一本科生26学分的范围内吗',
-            'GPA计算原则',
-            '限制选择的26学分包括军训的4学分吗？',
-            '这26学分是一个学期限制的吗？',
-            '军事技能考核总分多少分能得到两学分',
-            '军训时的4学分会算在大一学期的26学分限制中吗？即第一学期还可以选多少学分的课？',
-            'What is the weather like today?',
-            'How to implement a neural network?',
-            'Machine learning best practices',
-            'Python programming tips',
-            'Data science workflow',
-            'Deep learning architectures',
-            'Natural language processing techniques',
-            'Computer vision applications'
-        ]
+        # self.test_queries = [
+        #     '我最低选多少课',
+        #     '离东南门最近的健身房在哪？',
+        #     '军训期间的4学分算在大一本科生26学分的范围内吗',
+        #     'GPA计算原则',
+        #     '限制选择的26学分包括军训的4学分吗？',
+        #     '这26学分是一个学期限制的吗？',
+        #     '军事技能考核总分多少分能得到两学分',
+        #     '军训时的4学分会算在大一学期的26学分限制中吗？即第一学期还可以选多少学分的课？',
+        #     'What is the weather like today?',
+        #     'How to implement a neural network?',
+        #     'Machine learning best practices',
+        #     'Python programming tips',
+        #     'Data science workflow',
+        #     'Deep learning architectures',
+        #     'Natural language processing techniques',
+        #     'Computer vision applications'
+        # ]
 
-        self.test_documents = [
-            '最低选课数目是4门',
-            '东南门最近的健身房是xx健身房',
-            '军训期间的4学分算在大一本科生26学分的范围内',
-            'GPA计算原则是加权平均',
-            '限制选择的26学分包括军训的4学分',
-            '26学分是一个学期限制的',
-            '军事技能考核总分100分能得到两学分',
-            '军训时的4学分会算在大一学期的26学分限制中',
-            'Today is sunny with a temperature of 25 degrees',
-            'Neural networks are computational models inspired by biological neural networks',
-            'Machine learning involves training algorithms on data to make predictions',
-            'Python is a versatile programming language with many libraries',
-            'Data science combines statistics, programming, and domain expertise',
-            'Deep learning uses neural networks with multiple layers',
-            'NLP focuses on interactions between computers and human language',
-            'Computer vision enables machines to interpret visual information'
-        ]
-
+        # self.test_documents = [
+        #     '最低选课数目是4门',
+        #     '东南门最近的健身房是xx健身房',
+        #     '军训期间的4学分算在大一本科生26学分的范围内',
+        #     'GPA计算原则是加权平均',
+        #     '限制选择的26学分包括军训的4学分',
+        #     '26学分是一个学期限制的',
+        #     '军事技能考核总分100分能得到两学分',
+        #     '军训时的4学分会算在大一学期的26学分限制中',
+        #     'Today is sunny with a temperature of 25 degrees',
+        #     'Neural networks are computational models inspired by biological neural networks',
+        #     'Machine learning involves training algorithms on data to make predictions',
+        #     'Python is a versatile programming language with many libraries',
+        #     'Data science combines statistics, programming, and domain expertise',
+        #     'Deep learning uses neural networks with multiple layers',
+        #     'NLP focuses on interactions between computers and human language',
+        #     'Computer vision enables machines to interpret visual information'
+        # ]
+        self.test_queries = queries[:num_samples]
+        self.test_documents = corpus[:num_samples]
         # Create query-document pairs for reranking
         self.test_pairs = list(zip(self.test_queries, self.test_documents))
 
@@ -358,6 +372,7 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose logging')
     parser.add_argument('--embedding-only', action='store_true', help='Benchmark only embedding models')
     parser.add_argument('--reranker-only', action='store_true', help='Benchmark only reranker models')
+    parser.add_argument('--dataset_path', type=str, help='dataset path')
 
     args = parser.parse_args()
 
@@ -387,7 +402,8 @@ def main():
         config['embedding_models'] = {}
 
     # Run benchmark
-    benchmark = LatencyBenchmark(config)
+    dataset_path = args.dataset_path
+    benchmark = LatencyBenchmark(config, dataset_path)
     results = benchmark.run_benchmark()
 
     # Print summary

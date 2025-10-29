@@ -108,7 +108,7 @@ documents = [
     '军训时的4学分会算在大一学期的26学分限制中吗？即第一学期还可以选多少学分的课？是xx',
 ]
 
-embedding_client = BGEM3Client(url='http://127.0.0.1:10992/embed')
+embedding_client = BGEM3Client(url='http://127.0.0.1:10991/embed')
 reranker_client = SodaRerankClient(url='http://127.0.0.1:10993/rerank')
 
 async def main():
