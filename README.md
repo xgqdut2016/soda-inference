@@ -24,6 +24,16 @@ conda activate infinitensor-env
 # Install dependencies
 pip install -r requirements.txt
 ```
+## 测试流程
+
+通过修改test/test_e2e.py的数据集路径可以完成精度测试，不过我默认处理数据集的长度是16，需要在代码里面修改
+
+```bash
+bash torch_mteb.sh
+bash infinitensor_mteb.sh
+```
+
+通过修改benchmark_latency.py的数据集路径可以完成性能测试，不过我默认处理数据集的长度是16，需要在代码里面修改
 
 ## 📋 Test Pipeline
 

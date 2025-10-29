@@ -3,15 +3,15 @@
     "iterations": 100,
     "embedding_models": {
         "BgeM3Infer": {
-            "model_path": "/home/xiaogq/verify_models/bge-m3",
+            "model_path": "/data/shared/xiaogq/verify_models/bge-m3",
             "use_fp16": false,
             "device": "cuda",
             "batch_size": 12,
             "max_length": 8192
         },
         "InfinitensorInfer": {
-            "model_path": "/home/xiaogq/verify_models/BGE/bge_sim_512.onnx",
-            "tokenizer_path": "/home/xiaogq/verify_models/bge-m3",
+            "model_path": "/data/shared/xiaogq/verify_models/BGE/bge_sim_512.onnx",
+            "tokenizer_path": "/data/shared/xiaogq/verify_models/bge-m3",
             "device": "cuda",
             "batch_size": 1,
             "max_length": 512,
@@ -20,15 +20,15 @@
     },
     "reranker_models": {
         "BgeRerankerInfer": {
-            "model_path": "/home/xiaogq/verify_models/bge-reranker-v2-m3",
+            "model_path": "/data/shared/xiaogq/verify_models/bge-reranker-v2-m3",
             "use_fp16": false,
             "device": "cuda",
             "batch_size": 512,
             "max_length": 512
         },
         "InfinitensorRerankerInfer": {
-            "onnx_model_path": "/home/xiaogq/verify_models/BGE-reranker-512/bge_reranker_O1_sim_512.onnx",
-            "model_path": "/home/xiaogq/verify_models/bge-reranker-v2-m3",
+            "onnx_model_path": "/data/shared/xiaogq/verify_models/BGE-reranker-512/bge_reranker_O1_sim_512.onnx",
+            "model_path": "/data/shared/xiaogq/verify_models/bge-reranker-v2-m3",
             "device": "cuda",
             "batch_size": 1,
             "max_length": 512,

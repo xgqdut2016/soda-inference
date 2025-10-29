@@ -10,7 +10,7 @@ mkdir -p $LOG_DIR
 
 # 启动 embedding 服务
 echo "🚀 启动 embedding 服务 (端口 $PORT_EMBED)..."
-nohup env SERVICE_PORT=$PORT_EMBED MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/home/xiaogq/verify_models/bge-m3","use_fp16":false}' python src/start_server.py > $LOG_DIR/embedding.log 2>&1 &
+nohup env SERVICE_PORT=$PORT_EMBED MODEL_TYPE=embed MODEL_CLS=BgeM3Infer MODEL_KWARGS='{"model_path": "/data/shared/xiaogq/verify_models/bge-m3","use_fp16":false}' python src/start_server.py > $LOG_DIR/embedding.log 2>&1 &
 
 # 等待 embedding 启动成功
 echo "⏳ 等待 embedding 服务启动..."
@@ -28,7 +28,7 @@ done
 
 # 启动 reranker 服务
 echo "🚀 启动 reranker 服务 (端口 $PORT_RERANK)..."
-nohup env SERVICE_PORT=$PORT_RERANK MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/home/xiaogq/verify_models/bge-reranker-v2-m3","use_fp16":false}' python src/start_server.py > $LOG_DIR/reranker.log 2>&1 &
+nohup env SERVICE_PORT=$PORT_RERANK MODEL_TYPE=rerank MODEL_CLS=BgeRerankerInfer MODEL_KWARGS='{"model_path":"/data/shared/xiaogq/verify_models/bge-reranker-v2-m3","use_fp16":false}' python src/start_server.py > $LOG_DIR/reranker.log 2>&1 &
 
 # 等待 reranker 启动成功
 echo "⏳ 等待 reranker 服务启动..."
@@ -49,17 +49,13 @@ sleep 5
 
 # 启动 E2E 测试（端口号请根据需要在 test_e2e.py 中配置）
 echo "🚀 运行 E2E 测试..."
-python test/test_e2e.py
-
-# 检查是否生成结果文件
-if [ -f embedding.pkl ] && [ -f reranker.pkl ]; then
-    echo "✅ embedding.pkl 与 reranker.pkl 已生成"
+# python test/test_e2e.py --output_path eval/ --dataset_path /data/shared/xiaogq/mteb_data/T2Retrieval
+python test/test_e2e.py --output_path eval/ 
+# 检查 eval/ 目录下是否生成结果文件
+if [ -f eval/embedding.pkl ] && [ -f eval/reranker.pkl ]; then
+    echo "✅ eval/embedding.pkl 与 eval/reranker.pkl 已生成"
 else
-    echo "⚠️ 检查：未发现 embedding.pkl 或 reranker.pkl"
+    echo "⚠️ 检查：未发现 eval/embedding.pkl 或 eval/reranker.pkl"
 fi
 
-# 运行评估
-echo "📊 开始评估..."
-python eval_generated_pkl.py
 
-echo "🎉 全流程完成！"
