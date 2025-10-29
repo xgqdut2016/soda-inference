@@ -139,7 +139,7 @@ async def main():
         # ===== 提取 queries 和 corpus 文本 =====
         queries = [item["text"].strip() for item in dataset["queries"]]
         corpus = [clean_html(item["text"]) for item in dataset["corpus"]]
-        num_samples = 16
+        num_samples = len(queries)
         queries = queries[:num_samples]
         corpus = corpus[:num_samples]
 

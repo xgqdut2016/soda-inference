@@ -49,8 +49,8 @@ sleep 5
 
 # 启动 E2E 测试（端口号请根据需要在 test_e2e.py 中配置）
 echo "🚀 运行 E2E 测试..."
-# python test/test_e2e.py --output_path eval/ --dataset_path /data/shared/xiaogq/mteb_data/T2Retrieval
-python test/test_e2e.py --output_path eval/ 
+python test/test_e2e.py --output_path eval/ --dataset_path /data/shared/xiaogq/mteb_data/T2Retrieval
+#python test/test_e2e.py --output_path eval/ 
 # 检查 eval/ 目录下是否生成结果文件
 if [ -f eval/embedding.pkl ] && [ -f eval/reranker.pkl ]; then
     echo "✅ eval/embedding.pkl 与 eval/reranker.pkl 已生成"

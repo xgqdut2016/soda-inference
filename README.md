@@ -26,14 +26,19 @@ pip install -r requirements.txt
 ```
 ## 测试流程
 
-通过修改test/test_e2e.py的数据集路径可以完成精度测试，不过我默认处理数据集的长度是16，需要在代码里面修改
+通过修改test/test_e2e.py的数据集路径可以完成精度测试，如果显卡资源不足可以在test_e2e.py里面修改num_samples减少数据量的加载
 
 ```bash
 bash torch_mteb.sh
 bash infinitensor_mteb.sh
 ```
 
-通过修改benchmark_latency.py的数据集路径可以完成性能测试，不过我默认处理数据集的长度是16，需要在代码里面修改
+通过修改benchmark_latency.py的数据集路径可以完成性能测试，如果显卡资源不足可以在benchmark_latency.py里面修改num_samples减少数据量的加载
+```bash
+bash run_benchmark.sh
+```
+
+数据集来源于https://modelscope.cn/docs/model-evaluation/get-started/supported-dataset/other/mteb，注意里面下载的数据集无法直接使用，里面的dataset_infos.json需要自己手动添加dtype
 
 ## 📋 Test Pipeline
 
