@@ -27,8 +27,8 @@ run_benchmark() {
 
 # Default benchmark (all models)
 echo "Running default benchmark (all models)..."
-run_benchmark "Full Benchmark - All Models" "--config benchmark_config.json --iterations 50 --dataset_path /home/xiaogq/verify_models/mteb_code/T2Retrieval"
-
+run_benchmark "Full Benchmark - All Models" "--config benchmark_config.json --iterations 50 --dataset_path /data/shared/xiaogq/mteb_data/T2Retrieval"
+#run_benchmark "Full Benchmark - All Models" "--config benchmark_config.json --iterations 50"
 # # Embedding models only
 echo ""
 echo "Running embedding models benchmark..."

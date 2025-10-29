@@ -1,2 +1,4 @@
 *.pyc
 benchmark_results*
+*.pkl
+*.log

@@ -1,6 +1,16 @@
 import sys
 import pickle
 import asyncio
+import argparse
+
+from datasets import load_dataset
+import re
+
+# ===== 定义 HTML 清理函数 =====
+def clean_html(text):
+    text = re.sub(r"<[^>]+>", "", text)  # 去除所有 HTML 标签
+    text = text.replace("\n", "").strip()
+    return text
 
 sys.path.append('.')
 sys.path.append('..')
@@ -112,6 +122,27 @@ embedding_client = BGEM3Client(url='http://127.0.0.1:10991/embed')
 reranker_client = SodaRerankClient(url='http://127.0.0.1:10993/rerank')
 
 async def main():
+    parser = argparse.ArgumentParser(description='test mteb data')
+    parser.add_argument('--dataset_path', type=str, help='dataset path')
+    parser.add_argument('--output_path', type=str, help='dataset path')
+
+    args = parser.parse_args()
+    dataset_path = args.dataset_path
+    output_path = args.output_path
+
+    if dataset_path is None:
+        print("使用预定义的 query 和 documents")
+        queries = query
+        corpus = documents
+    else:
+        dataset = load_dataset(dataset_path)
+        # ===== 提取 queries 和 corpus 文本 =====
+        queries = [item["text"].strip() for item in dataset["queries"]]
+        corpus = [clean_html(item["text"]) for item in dataset["corpus"]]
+        num_samples = len(queries)
+        queries = queries[:num_samples]
+        corpus = corpus[:num_samples]
+
     embedding_list = []
     reranker_list = []
     for q, d in zip(query, documents):
@@ -120,9 +151,9 @@ async def main():
         embedding_list.append(embedding)
         reranker_list.append(reranker)
 
-    with open("embedding.pkl", "wb") as f:
+    with open(output_path + "embedding.pkl", "wb") as f:
         pickle.dump(embedding_list, f)
-    with open("reranker.pkl", "wb") as f:
+    with open(output_path + "reranker.pkl", "wb") as f:
         pickle.dump(reranker_list, f)
 
 if __name__ == '__main__':
